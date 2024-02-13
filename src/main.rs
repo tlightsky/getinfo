@@ -1,4 +1,5 @@
 use std::env;
+use tokio::process::Command;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener;
 
@@ -46,5 +47,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn process(directive: &str) -> String {
-    "invalid command".to_string()
+    if directive == "gettime\n" {
+        let output = Command::new("date").output().await.unwrap();
+        String::from_utf8(output.stdout).unwrap()
+    } else {
+        "invalid command".to_string()
+    }
 }
