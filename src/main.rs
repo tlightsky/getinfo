@@ -1,0 +1,50 @@
+use std::env;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpListener;
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let addr = std::env::args()
+        .nth(1)
+        .unwrap_or("127.0.0.1:8888".to_string());
+
+    println!("Listening on: {}", addr);
+
+    let listener = TcpListener::bind(&addr).await?;
+
+    loop {
+        let (mut socket, _) = listener.accept().await?;
+        tokio::spawn(async move {
+            let mut buf = [0; 1024];
+            let mut offset = 0;
+            loop {
+                let n = socket
+                    .read(&mut buf[offset..])
+                    .await
+                    .expect("failed to read from socket");
+
+                if n == 0 {
+                    return;
+                }
+
+                println!("offset: {offset}, n: {n}");
+
+                let end = offset + n;
+                if let Ok(directive) = std::str::from_utf8(&buf[..end]) {
+                    println!("{directive}");
+                    let output = process(directive).await;
+                    println!("{output}");
+                    socket.write_all(output.as_bytes())
+                        .await
+                        .expect("failed to write data to socket");
+                } else {
+                    offset = end
+                };
+            }
+        });
+    }
+}
+
+async fn process(directive: &str) -> String {
+    "invalid command".to_string()
+}
